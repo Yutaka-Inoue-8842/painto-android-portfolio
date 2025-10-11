@@ -65,6 +65,22 @@ fun EditorScreen(
         )
     }
 
+    // 成功ダイアログ
+    state.successMessage?.let { success ->
+        AlertDialog(
+            onDismissRequest = { viewModel.sendIntent(EditorIntent.DismissSuccess) },
+            title = { Text("成功") },
+            text = { Text(success) },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.sendIntent(EditorIntent.DismissSuccess) }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier.fillMaxSize()

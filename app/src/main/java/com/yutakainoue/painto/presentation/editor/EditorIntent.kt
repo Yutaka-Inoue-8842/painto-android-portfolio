@@ -201,6 +201,14 @@ sealed class EditorIntent : UiIntent {
     data object DismissError : EditorIntent()
 
     /**
+     * 成功ダイアログを閉じるアクション
+     *
+     * ユーザーが成功ダイアログのOKボタンをタップした時に発行。
+     * 成功メッセージをクリアしてUIを通常状態に戻す。
+     */
+    data object DismissSuccess : EditorIntent()
+
+    /**
      * ローディング状態設定アクション
      *
      * 非同期処理の開始/終了時にシステムから発行。
