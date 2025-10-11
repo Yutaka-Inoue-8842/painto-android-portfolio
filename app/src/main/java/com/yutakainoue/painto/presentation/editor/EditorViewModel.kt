@@ -84,6 +84,7 @@ class EditorViewModel(
             is EditorIntent.ShareImage -> shareImage()
             is EditorIntent.ShowError -> showError(intent.message)
             is EditorIntent.DismissError -> dismissError()
+            is EditorIntent.DismissSuccess -> dismissSuccess()
             is EditorIntent.SetLoading -> setLoading(intent.loading)
         }
     }
@@ -444,7 +445,7 @@ class EditorViewModel(
                     updateState {
                         copy(
                             isLoading = false,
-                            errorMessage = "プロジェクトをローカルに保存しました"
+                            successMessage = "プロジェクトをローカルに保存しました"
                         )
                     }
                 } catch (e: Exception) {
@@ -463,6 +464,7 @@ class EditorViewModel(
      * ギャラリー保存処理
      *
      * 編集後の画像をデバイスのフォトギャラリーにエクスポート。
+     * ペイントストロークを画像に焼き込んでから保存。
      * MediaStore APIを使用して、他のアプリからも閲覧可能な形で保存。
      * ファイル名にはタイムスタンプを含めて重複を防止。
      */
@@ -472,14 +474,24 @@ class EditorViewModel(
             if (currentProject?.editedImage != null) {
                 updateState { copy(isLoading = true) }
                 try {
+                    // ペイントストロークを画像に焼き込む
+                    val finalBitmap = if (currentProject.strokes.isNotEmpty()) {
+                        imageEditingUseCase.renderStrokesToBitmap(
+                            currentProject.editedImage,
+                            currentProject.strokes
+                        )
+                    } else {
+                        currentProject.editedImage
+                    }
+
                     // タイムスタンプ付きのユニークなファイル名を生成
                     val filename = "painto_${System.currentTimeMillis()}.jpg"
-                    val uri = photoRepository.saveImageToGallery(currentProject.editedImage, filename)
+                    val uri = photoRepository.saveImageToGallery(finalBitmap, filename)
                     if (uri != null) {
                         updateState {
                             copy(
                                 isLoading = false,
-                                errorMessage = "画像をギャラリーに保存しました"
+                                successMessage = "画像をギャラリーに保存しました"
                             )
                         }
                     } else {
@@ -506,6 +518,7 @@ class EditorViewModel(
      * 画像共有処理
      *
      * 編集後の画像を他のアプリやサービスで共有するためのSystem共有シートを起動。
+     * ペイントストロークを画像に焼き込んでから共有。
      * SNSへの投稿、メール送信、クラウドストレージへのアップロードなどが可能。
      * AndroidのShareIntentを使用してシステム標準の共有UIを提供。
      */
@@ -515,15 +528,25 @@ class EditorViewModel(
             if (currentProject?.editedImage != null) {
                 updateState { copy(isLoading = true) }
                 try {
+                    // ペイントストロークを画像に焼き込む
+                    val finalBitmap = if (currentProject.strokes.isNotEmpty()) {
+                        imageEditingUseCase.renderStrokesToBitmap(
+                            currentProject.editedImage,
+                            currentProject.strokes
+                        )
+                    } else {
+                        currentProject.editedImage
+                    }
+
                     // 一時的な共有用ファイルを作成
-                    val uri = photoRepository.shareImage(currentProject.editedImage)
+                    val uri = photoRepository.shareImage(finalBitmap)
                     if (uri != null) {
                         // TODO: システム共有インテントを起動
                         // Intent.ACTION_SENDを使用して共有シートを表示
                         updateState {
                             copy(
                                 isLoading = false,
-                                errorMessage = "共有準備完了 (システム共有は実装予定)"
+                                successMessage = "共有準備完了 (システム共有は実装予定)"
                             )
                         }
                     } else {
@@ -564,6 +587,16 @@ class EditorViewModel(
      */
     private fun dismissError() {
         updateState { copy(errorMessage = null) }
+    }
+
+    /**
+     * 成功ダイアログを閉じる処理
+     *
+     * ユーザーが成功ダイアログのOKボタンをタップした時の処理。
+     * 成功メッセージをクリアしてUIを通常状態に戻す。
+     */
+    private fun dismissSuccess() {
+        updateState { copy(successMessage = null) }
     }
 
     /**

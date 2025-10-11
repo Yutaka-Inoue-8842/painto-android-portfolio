@@ -2,9 +2,7 @@ package com.yutakainoue.painto.presentation.editor
 
 import android.graphics.Bitmap
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import com.yutakainoue.painto.core.mvi.UiState
-import com.yutakainoue.painto.data.model.BrushType
 import com.yutakainoue.painto.data.model.PaintStroke
 import com.yutakainoue.painto.data.model.PaintStyle
 import com.yutakainoue.painto.data.model.PaintingProject
@@ -19,6 +17,7 @@ import com.yutakainoue.painto.data.model.PaintingProject
  * @param currentProject 現在編集中のプロジェクト
  * @param isLoading ローディング状態（true: 処理中、false: 通常状態）
  * @param errorMessage エラーメッセージ（null: エラーなし、String: エラー内容）
+ * @param successMessage 成功メッセージ（null: メッセージなし、String: 成功内容）
  * @param currentTool 現在選択されている編集ツール
  * @param currentBrushStyle 現在のブラシスタイル設定
  * @param canUndo Undo操作が可能かどうか
@@ -31,6 +30,7 @@ data class EditorState(
     val currentProject: PaintingProject? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val successMessage: String? = null,
     val currentTool: Tool = Tool.Brush,
     val currentBrushStyle: PaintStyle = PaintStyle(),
     val canUndo: Boolean = false,

@@ -1,9 +1,12 @@
 package com.yutakainoue.painto.domain.usecase
 
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Matrix
+import android.graphics.Paint
 import com.yutakainoue.painto.data.model.FilterType
-import kotlin.math.cos
-import kotlin.math.sin
 
 /**
  * 画像編集機能を提供するユースケースクラス
@@ -250,6 +253,99 @@ class ImageEditingUseCase {
             setSaturation(saturation)
         }
         return applyColorMatrix(bitmap, colorMatrix)
+    }
+
+    /**
+     * ペイントストロークを画像に焼き込む
+     *
+     * メモリ上のストロークデータを実際の画像として合成。
+     * 背景画像の上にすべてのペイントストロークを描画し、
+     * 保存や共有が可能な単一のBitmapとして出力。
+     * 画面表示と同じ見た目で画像を生成。
+     *
+     * @param bitmap ベースとなる背景画像
+     * @param strokes 描画するストロークのリスト
+     * @return ストロークが焼き込まれた新しいBitmap
+     */
+    fun renderStrokesToBitmap(bitmap: Bitmap, strokes: List<com.yutakainoue.painto.data.model.PaintStroke>): Bitmap {
+        // 元のBitmapと同じ設定で新しいBitmapを作成（編集可能）
+        val result = bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(result)
+
+        // 各ストロークを順番に描画
+        strokes.forEach { stroke ->
+            if (stroke.points.size >= 2) {
+                val path = android.graphics.Path().apply {
+                    moveTo(stroke.points.first().x, stroke.points.first().y)
+                    for (i in 1 until stroke.points.size) {
+                        lineTo(stroke.points[i].x, stroke.points[i].y)
+                    }
+                }
+
+                // ブラシタイプに応じた描画スタイルを適用
+                val paint = when (stroke.paint.brushType) {
+                    com.yutakainoue.painto.data.model.BrushType.PEN -> {
+                        Paint().apply {
+                            color = android.graphics.Color.argb(
+                                (stroke.paint.alpha * 255).toInt(),
+                                (stroke.paint.color.red * 255).toInt(),
+                                (stroke.paint.color.green * 255).toInt(),
+                                (stroke.paint.color.blue * 255).toInt()
+                            )
+                            strokeWidth = stroke.paint.strokeWidth
+                            style = Paint.Style.STROKE
+                            strokeCap = Paint.Cap.ROUND
+                            strokeJoin = Paint.Join.ROUND
+                            isAntiAlias = true
+                        }
+                    }
+                    com.yutakainoue.painto.data.model.BrushType.MARKER -> {
+                        Paint().apply {
+                            color = android.graphics.Color.argb(
+                                (0.7f * 255).toInt(),
+                                (stroke.paint.color.red * 255).toInt(),
+                                (stroke.paint.color.green * 255).toInt(),
+                                (stroke.paint.color.blue * 255).toInt()
+                            )
+                            strokeWidth = stroke.paint.strokeWidth * 1.5f
+                            style = Paint.Style.STROKE
+                            strokeCap = Paint.Cap.ROUND
+                            strokeJoin = Paint.Join.ROUND
+                            isAntiAlias = true
+                        }
+                    }
+                    com.yutakainoue.painto.data.model.BrushType.HIGHLIGHTER -> {
+                        Paint().apply {
+                            color = android.graphics.Color.argb(
+                                (0.3f * 255).toInt(),
+                                (stroke.paint.color.red * 255).toInt(),
+                                (stroke.paint.color.green * 255).toInt(),
+                                (stroke.paint.color.blue * 255).toInt()
+                            )
+                            strokeWidth = stroke.paint.strokeWidth * 2f
+                            style = Paint.Style.STROKE
+                            strokeCap = Paint.Cap.SQUARE
+                            strokeJoin = Paint.Join.ROUND
+                            isAntiAlias = true
+                        }
+                    }
+                    com.yutakainoue.painto.data.model.BrushType.ERASER -> {
+                        Paint().apply {
+                            color = android.graphics.Color.WHITE
+                            strokeWidth = stroke.paint.strokeWidth
+                            style = Paint.Style.STROKE
+                            strokeCap = Paint.Cap.ROUND
+                            strokeJoin = Paint.Join.ROUND
+                            isAntiAlias = true
+                        }
+                    }
+                }
+
+                canvas.drawPath(path, paint)
+            }
+        }
+
+        return result
     }
 
     /**
